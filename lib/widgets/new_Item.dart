@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/categoriesData.dart';
+import '../model/categoryModel.dart';
+import '../model/groceryItemModel.dart';
 
 class NewItem extends StatefulWidget{
   const NewItem({super.key});
@@ -16,9 +18,18 @@ class NewItem extends StatefulWidget{
 
 class _NewItemState extends State<NewItem>{
   final _formKey=GlobalKey<FormState>();
-
+  var _enteredName='';
+  var _enteredQuantity=1;
+  var _selectedCategory=categories[Categories.vegetables]!;
   void _savedItem(){
-    _formKey.currentState!.validate();
+    if(_formKey.currentState!.validate()){
+    _formKey.currentState!.save();
+    Navigator.of(context).pop(GroceryItem(
+        id: DateTime.now().toString(),
+        name: _enteredName,
+        quantity: _enteredQuantity,
+        category: _selectedCategory));
+    }
   }
   @override
 Widget build(BuildContext context){
@@ -29,19 +40,26 @@ Widget build(BuildContext context){
           child: Form(
             key:_formKey,
             child: Column(children:[
-           TextFormField(maxLength:50,decoration:InputDecoration(label:Text('Name')),
+           TextFormField(
+               maxLength:50,
+               decoration:InputDecoration(label:Text('Name')),
                 validator:(value){
              if(value==null||value.isEmpty||value.trim().length<=1||value.trim().length>50){
                return "Please enter name between 1 to 50 character";
              }
              return null;
-                }),
+                },
+             onSaved:(value){
+                 _enteredName=value!;
+             },),
+
             Row(crossAxisAlignment:CrossAxisAlignment.end,
                 children:[
               Expanded(
                 child: TextFormField(
                     decoration:InputDecoration(label:Text("Quantity"),),
-                    initialValue:'1',
+                    keyboardType:TextInputType.number,
+                    initialValue:_enteredQuantity.toString(),
                     validator:(value){
                       if(value==null||
                           value.isEmpty||
@@ -51,12 +69,15 @@ Widget build(BuildContext context){
                       }
                       return null;
 
+                },
+                    onSaved:(value){
+                      _enteredQuantity=int.tryParse(value!)!;
                 }),
               ),
               SizedBox(width:8),
               Expanded(child:
               DropdownButtonFormField(
-
+value:_selectedCategory,
                 items: [
 for(final category in categories.entries)
   DropdownMenuItem(
@@ -71,7 +92,10 @@ for(final category in categories.entries)
     Text(category.value.title)
   ]),)
               ], onChanged: (value) {
+  setState((){
+    _selectedCategory=value!;
 
+  });
               },))
             ]),
               SizedBox(height:20),
