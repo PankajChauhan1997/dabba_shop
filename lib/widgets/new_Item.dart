@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../data/categoriesData.dart';
 import '../model/categoryModel.dart';
 import '../model/groceryItemModel.dart';
+import 'package:http/http.dart'as http;
 
 class NewItem extends StatefulWidget{
   const NewItem({super.key});
@@ -14,18 +17,36 @@ class NewItem extends StatefulWidget{
 
 }
 
-
-
 class _NewItemState extends State<NewItem>{
   final _formKey=GlobalKey<FormState>();
   var _enteredName='';
   var _enteredQuantity=1;
   var _selectedCategory=categories[Categories.vegetables]!;
-  void _savedItem(){
+  var _isSending=false;
+
+
+  void _savedItem()async {
     if(_formKey.currentState!.validate()){
     _formKey.currentState!.save();
+    setState((){
+      _isSending=true;
+    });
+    final url=Uri.https('dabbashop-5eddb-default-rtdb.firebaseio.com','dabba_Shopping_List.json');
+    final response=await http.post(
+        url,
+        headers:{'Content-Type':'application/json'},
+        body:json.encode({
+        'name': _enteredName,
+        'quantity': _enteredQuantity,
+        'category': _selectedCategory.title
+        })
+    );
+    final Map<String, dynamic>resData=json.decode(response.body);
+    if(!context.mounted) {
+      return;
+    }
     Navigator.of(context).pop(GroceryItem(
-        id: DateTime.now().toString(),
+        id: resData['name'],
         name: _enteredName,
         quantity: _enteredQuantity,
         category: _selectedCategory));
@@ -102,8 +123,10 @@ for(final category in categories.entries)
               Row(
                 mainAxisAlignment:MainAxisAlignment.end,
                 children: [
-                  ElevatedButton(onPressed: _savedItem, child: Text("Add Item"),),
-                  TextButton(onPressed: () {
+                  ElevatedButton(onPressed:_isSending?null: _savedItem,
+                    child: _isSending?
+                    SizedBox(height:16,width:16,child:CircularProgressIndicator()):Text("Add Item"),),
+                  TextButton(onPressed: _isSending?null:() {
                     _formKey.currentState!.reset();
                     // Navigator.of(context).pop();
                     },
